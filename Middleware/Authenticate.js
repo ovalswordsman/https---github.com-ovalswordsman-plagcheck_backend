@@ -8,7 +8,6 @@ const Authenticate = async (req, res, next) => {
     const rootUser = await User.findOne({
       _id: verifyToken._id,
       "tokens.token": token,
-       "role":"student"
     });
 
     if (!rootUser) throw new Error("User not found");

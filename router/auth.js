@@ -82,17 +82,20 @@ router.post("/login", async (req, res) => {
     if (userLogin) {
       //Matching the hashed password with the given passsword
       const isMatch = await bcrypt.compare(password, userLogin.password);
+
       const token = await userLogin.generateAuthToken();
 
-      //Generating cookie
-      res.cookie("jwtoken", token, {
-        expires: new Date(Date.now() + 25892000000), //After what time to expire
-        httpOnly: true,
-      });
       if (!isMatch) {
         res.status(400).json({ error: "Incorrect data" });
       } else {
-        res.status(200).json({ message: "Success" , role:userLogin.role});
+        //Generating cookie
+        return res
+          .cookie("jwtoken", token, {
+            expires: new Date(Date.now() + 3600000), //After what time to expire
+            httpOnly: true,
+          })
+          .status(200)
+          .json({ message: "Success", role: userLogin.role });
       }
     } else {
       res.status(400).json({ error: "Incorrect data" });
@@ -105,6 +108,12 @@ router.post("/login", async (req, res) => {
 //MyProfile
 router.get("/studenthome", Authenticate, (req, res) => {
   res.send(req.rootUser);
+});
+
+//Logout
+router.get("/logout", (req, res) => {
+  res.clearCookie("jwtoken", { path: "/" });
+  res.status(200).send();
 });
 
 module.exports = router;
