@@ -6,6 +6,8 @@ const User = require("../model/userSchema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Authenticate = require("../Middleware/Authenticate");
+const userClass = require("../model/classSchema")
+const { findClass } = require("../model/classSchema");
 router.get("/", (req, res) => {
   res.send(`Hello from the auth router`);
 });
@@ -109,6 +111,9 @@ router.post("/login", async (req, res) => {
 router.get("/studenthome", Authenticate, (req, res) => {
   res.send(req.rootUser);
 });
+router.get("/teacherhome", Authenticate, (req, res) => {
+  res.send(req.rootUser);
+});
 
 //Logout
 router.get("/logout", (req, res) => {
@@ -116,4 +121,29 @@ router.get("/logout", (req, res) => {
   res.status(200).send();
 });
 
+//Creating class
+router.post("/registerclass", async (req, res) => {
+  const { name, title, code } = req.body;
+  console.log(req.body);
+
+  if (!name || !title || !code) {
+    return res.status(422).json({ error: "Please fill the data correctly" });
+  }
+  try {
+    const classExist = await userClass.findOne({ code: code});
+    if (classExist) {
+      return res.status(422).json({ error: "Class Code already exists!" });
+    } else {
+      const user = new userClass({
+        name,
+        title,
+        code,
+      });
+      await user.save();
+      res.status(201).json({ message: "Class created successfully!" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+});
 module.exports = router;
