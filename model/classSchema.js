@@ -13,12 +13,28 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  email:{
+    type:String, 
+    required:true
+  },
   assignments: [
     {
       question: {
         type: String,
         required: true,
       },
+      solutions: [
+        {
+          roll_no: {
+            type: Number,
+            required: true,
+          },
+          solution: {
+            type: String,
+            required: true,
+          },
+        },
+      ],
     },
   ],
 });

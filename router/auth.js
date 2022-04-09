@@ -6,7 +6,7 @@ const User = require("../model/userSchema");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Authenticate = require("../Middleware/Authenticate");
-const userClass = require("../model/classSchema")
+const userClass = require("../model/classSchema");
 const { findClass } = require("../model/classSchema");
 router.get("/", (req, res) => {
   res.send(`Hello from the auth router`);
@@ -97,7 +97,11 @@ router.post("/login", async (req, res) => {
             httpOnly: true,
           })
           .status(200)
-          .json({ message: "Success", role: userLogin.role });
+          .json({
+            message: "Success",
+            role: userLogin.role,
+            email: userLogin.email,
+          });
       }
     } else {
       res.status(400).json({ error: "Incorrect data" });
@@ -123,14 +127,14 @@ router.get("/logout", (req, res) => {
 
 //Creating class
 router.post("/registerclass", async (req, res) => {
-  const { name, title, code } = req.body;
+  const { name, title, code, email } = req.body;
   console.log(req.body);
 
   if (!name || !title || !code) {
     return res.status(422).json({ error: "Please fill the data correctly" });
   }
   try {
-    const classExist = await userClass.findOne({ code: code});
+    const classExist = await userClass.findOne({ code: code });
     if (classExist) {
       return res.status(422).json({ error: "Class Code already exists!" });
     } else {
@@ -138,12 +142,65 @@ router.post("/registerclass", async (req, res) => {
         name,
         title,
         code,
+        email,
       });
-      await user.save();
-      res.status(201).json({ message: "Class created successfully!" });
+      // this.tokens.concat({ token: token });
+      const temp = await user.save();
+      const tempUser = await User.findOne({ email: email });
+      //  const classDeatils = await userClass.find({ email: email });
+
+      await User.findOneAndUpdate(
+        { email: email },
+        { classes: [...tempUser.classes, { class: code }] }
+      );
+
+      // const temp = await userClass.find({ email: email })
+      res.status(201).json({ message: "Hello", class: temp });
     }
   } catch (err) {
     console.log(err);
   }
 });
+
+router.post("/joinclass", Authenticate, async (req, res) => {
+  const { code, email } = req.body;
+  if (!code) {
+    return res.status(422).json({ error: "Please fill the data correctly" });
+  }
+  try {
+    const classExist = await userClass.findOne({ code: code });
+    if (classExist) {
+      const tempUser = await User.findOne({ email: email });
+      //  const classDeatils = await userClass.find({ email: email });
+
+      await User.findOneAndUpdate(
+        { email: email },
+        { classes: [...tempUser.classes, { class: code }] }
+      );
+      return res.status(200).json({ message: "Class Joined Successfully!" });
+    } else {
+      res.status(422).json({ message: "Class does not exist" });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+router.get("/teacherhome/classes", Authenticate, (req, res) => {
+  userClass.find({ email: req.rootUser.email }, (error, data) => {
+    if (error) console.log(error);
+    else {
+      res.status(200).send({ classList: data });
+    }
+  });
+});
+// router.get("/studenthome/classes", Authenticate, (req, res) => {
+//   userClass.find({ email: req.rootUser.email }, (error, data) => {
+//     if (error) console.log(error);
+//     else {
+//       res.status(200).send({classList:data})
+//     }
+//   });
+
+// });
 module.exports = router;

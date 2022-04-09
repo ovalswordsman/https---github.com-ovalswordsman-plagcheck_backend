@@ -22,10 +22,18 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  role:{
-    type:String,
-    required:true,
+  role: {
+    type: String,
+    required: true,
   },
+  classes: [
+    {
+      class: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
   tokens: [
     {
       token: {
@@ -49,13 +57,15 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.generateAuthToken = async function () {
   try {
     // sign has three params 1.payload (MUST BE UNIQUE)2. privatekey 3. options, callback
-    let token = jwt.sign({ _id:this._id }, process.env.SECRET_KEY);
+    let token = jwt.sign({ _id: this._id }, process.env.SECRET_KEY);
     this.tokens = this.tokens.concat({ token: token });
-    await this.save()
+    await this.save();
     return token;
   } catch (err) {
     console.log(err);
   }
 };
+
+
 const User = mongoose.model("USER", userSchema);
 module.exports = User;
