@@ -164,20 +164,44 @@ router.post("/registerclass", async (req, res) => {
 
 router.post("/joinclass", Authenticate, async (req, res) => {
   const { code, email } = req.body;
+
   if (!code) {
     return res.status(422).json({ error: "Please fill the data correctly" });
   }
   try {
+    // Checking the existence of class
     const classExist = await userClass.findOne({ code: code });
     if (classExist) {
+      //finding user who wants to join the class
       const tempUser = await User.findOne({ email: email });
-      //  const classDeatils = await userClass.find({ email: email });
 
-      await User.findOneAndUpdate(
-        { email: email },
-        { classes: [...tempUser.classes, { class: code }] }
-      );
-      return res.status(200).json({ message: "Class Joined Successfully!" });
+      //if class exist finding whether user has aleready joined it or not
+      const alreadyExist = await User.findOne({
+        $and: [
+          { email: email },
+          {
+            classes: {
+              $elemMatch: { class: code },
+            },
+          },
+        ],
+      });
+      if (alreadyExist)
+        res.status(422).json({ message: "Class already joined" });
+      else {
+        //if user has not already joined we update the user table with the new class joined
+        await User.findOneAndUpdate(
+          { email: email },
+          { classes: [...tempUser.classes, { class: code }] }
+        );
+
+        //updating the user email in class table
+        await userClass.findOneAndUpdate(
+          { code: code },
+          { student_emails: [...classExist.student_emails, { email: email }] }
+        );
+        return res.status(200).json({ message: "Class Joined Successfully!", class:classExist });
+      }
     } else {
       res.status(422).json({ message: "Class does not exist" });
     }
@@ -194,13 +218,21 @@ router.get("/teacherhome/classes", Authenticate, (req, res) => {
     }
   });
 });
-// router.get("/studenthome/classes", Authenticate, (req, res) => {
-//   userClass.find({ email: req.rootUser.email }, (error, data) => {
-//     if (error) console.log(error);
-//     else {
-//       res.status(200).send({classList:data})
-//     }
-//   });
 
-// });
+router.get("/studenthome/classes", Authenticate, async (req, res) => {
+  try {
+    const data = await userClass.find({
+      student_emails: {
+        $elemMatch: { email: req.rootUser.email },
+      },
+    });
+    res.status(200).send({ classList: data });
+  } catch (err) {
+    console.log(err);
+  }
+});
 module.exports = router;
+
+router.post('/teacherhome/classes/assignment', async (req, res)=>{
+  
+})
